@@ -466,6 +466,7 @@ class EvaluationTracker:
         latest_model_name = max(
             latest_task_results_datetime, key=lambda k: latest_task_results_datetime[k]
         )
+        print(results_files, latest_datetime.replace(":", "-"))
         last_results_file = [
             f for f in results_files if latest_datetime.replace(":", "-") in f
         ][0]
