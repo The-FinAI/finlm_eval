@@ -318,6 +318,7 @@ class AnthropicChat(LocalCompletionsAPI):
         eos="\n\nHuman:",
         **kwargs,
     ) -> dict:
+        system = None
         system = (
             messages[0].get("content") if messages[0].get("role") == "system" else None
         )

@@ -12,7 +12,7 @@ generation_kwargs:
     - ","
   do_sample: false
   temperature: 0.0
-  max_gen_toks: 50
+  max_gen_toks: 30
 filter_list:
   - name: "score-first"
     filter:

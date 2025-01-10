@@ -617,6 +617,7 @@ class TemplateAPI(TemplateLM):
                         "Tokenized requests are disabled. Context + generation length is not checked."
                     )
                 req = encodings_list if self.tokenized_requests else contexts
+                print(req)
                 outputs = retry(
                     stop=stop_after_attempt(self.max_retries),
                     wait=wait_exponential(multiplier=0.5, min=1, max=10),

@@ -22,9 +22,75 @@ MODEL_DICT = {
         "full_model_name": '<a target="_blank" href="https://openai.com/index/gpt-4/" style="color: var(--link-text-color); text-decoration: underline;text-decoration-style: dotted;">GPT-4</a>',
         "co2_kg_per_s": 0.0023,
     },
+    "gpt-4o": {
+        "Architecture": "Transformer",
+        "Hub License": "openai",
+        "Hub ❤️": 0,
+        "#Params (B)": 2500.0,
+        "Available on the hub": False,
+        "MoE": True,
+        "generation": 0,
+        "Base Model": "GPT-4o",
+        "Type": "💬 chat models (RLHF, DPO, IFT, ...)",
+        "T": "💬",
+        "full_model_name": '<a target="_blank" href="https://openai.com/index/gpt-4o/" style="color: var(--link-text-color); text-decoration: underline;text-decoration-style: dotted;">GPT-4</a>',
+        "co2_kg_per_s": 0.0023,
+    },
+    "gpt-4o-mini": {
+        "Architecture": "Transformer",
+        "Hub License": "openai",
+        "Hub ❤️": 0,
+        "#Params (B)": 500.0,
+        "Available on the hub": False,
+        "MoE": True,
+        "generation": 0,
+        "Base Model": "GPT-4o-mini",
+        "Type": "💬 chat models (RLHF, DPO, IFT, ...)",
+        "T": "💬",
+        "full_model_name": '<a target="_blank" href="https://openai.com/index/gpt-4o-mini/" style="color: var(--link-text-color); text-decoration: underline;text-decoration-style: dotted;">GPT-4</a>',
+        "co2_kg_per_s": 0.0023,
+    },
+    "gpt-3.5-turbo-0125": {
+        "Architecture": "Transformer",
+        "Hub License": "openai",
+        "Hub ❤️": 0,
+        "#Params (B)": 400.0,
+        "Available on the hub": False,
+        "MoE": True,
+        "generation": 0,
+        "Base Model": "GPT-3.5-turbo",
+        "Type": "💬 chat models (RLHF, DPO, IFT, ...)",
+        "T": "💬",
+        "full_model_name": '<a target="_blank" href="https://openai.com/index/gpt-3.5/" style="color: var(--link-text-color); text-decoration: underline;text-decoration-style: dotted;">GPT-4</a>',
+        "co2_kg_per_s": 0.0023,
+    },
+    "meta-llama/Llama-3.2-1B-Instruct": {
+        "Architecture": "LlamaForCausalLM",
+        "Hub License": "llama3.2",
+        "Hub ❤️": 684,
+        "#Params (B)": 1.24,
+        "Available on the hub": True,
+        "MoE": False,
+        "generation": 0,
+        "Base Model": "meta-llama/Llama-3.2-1B-Instruct",
+        "Type": "💬 chat models (RLHF, DPO, IFT, ...)",
+        "T": "💬",
+        "full_model_name": '<a target="_blank" href="https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct" style="color: var(--link-text-color); text-decoration: underline;text-decoration-style: dotted;">meta-llama/Llama-3.2-1B-Instruct</a>',
+    },
 }
 
-METRIC_DICT = {"GRMultifinGen": {"task_name": "MultiFin", "random_baseline": 1.0 / 6.0}}
+METRIC_DICT = {
+    "GRMultifinGen": {
+        "task_name": "MultiFin",
+        "random_baseline": 1.0 / 6.0,
+        "key": "exact_match,score-first",
+    },
+    "GRMultifin": {
+        "task_name": "MultiFin",
+        "random_baseline": 1.0 / 6.0,
+        "key": "acc_norm,none",
+    },
+}
 
 
 def normalize_within_range(value, lower_bound=0, higher_bound=1):
@@ -77,12 +143,10 @@ def load_dataset_from_huggingface(repo_id):
 
 def aggregate_results(dataset):
     aggregated = {}
-    print(dataset)
 
     sorted_dataset = sorted(
         dataset, key=lambda x: x.get("date", 0), reverse=True
     )  # Sort by date in descending order
-    print(sorted_dataset)
 
     for data in sorted_dataset:
         original_task_name = list(data["results"].keys())[0]
@@ -91,10 +155,12 @@ def aggregate_results(dataset):
         )
         task_name = task_mapping["task_name"]
         lower_bound = task_mapping["random_baseline"]
+        task_key = task_mapping["key"]
 
         task_data = data["results"].get(original_task_name, {})
         config_data = data["configs"].get(original_task_name, {})
-        model_name = data.get("model_name_sanitized", original_task_name)
+        model_name = data.get("model_name", original_task_name)
+        print(model_name, task_data)
         model_info = MODEL_DICT.get(model_name, {})
 
         if model_name not in aggregated:
@@ -114,13 +180,12 @@ def aggregate_results(dataset):
                 "Model sha": data.get("task_hashes", {}).get(original_task_name, ""),
                 "Hub License": model_info.get(
                     "Hub License",
-                    config_data.get("metadata", {}).get("version", "unknown"),
                 ),
                 "Hub ❤️": model_info.get(
-                    "Hub ❤️", data.get("config", {}).get("use_cache", 3)
+                    "Hub ❤️",
                 ),
                 "#Params (B)": model_info.get(
-                    "#Params (B)", data.get("config", {}).get("batch_size", 7.242)
+                    "#Params (B)",
                 ),
                 "Available on the hub": model_info.get("Available on the hub", False),
                 "MoE": model_info.get("MoE", False),
@@ -146,7 +211,7 @@ def aggregate_results(dataset):
                 "Base Model": model_info.get("Base Model", model_name),
             }
 
-        raw_score = task_data.get("exact_match,score-first", 0)
+        raw_score = task_data.get(task_key, 0)
         normalized_score = normalize_within_range(
             raw_score, lower_bound=lower_bound, higher_bound=1
         )
@@ -177,5 +242,5 @@ def update_greek_contents(aggregated_results, repo_id="TheFinAI/greek-contents")
 repo_id = "TheFinAI/lm-eval-results-private"  # Update with actual repo ID
 json_files_dataset = load_dataset_from_huggingface(repo_id)
 aggregated_results = aggregate_results(json_files_dataset)
-update_greek_contents(aggregated_results)
 print(json.dumps(aggregated_results, indent=2))
+update_greek_contents(aggregated_results)

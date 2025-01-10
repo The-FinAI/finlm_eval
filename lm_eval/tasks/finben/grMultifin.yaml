@@ -6,7 +6,7 @@ output_type: multiple_choice
 doc_to_choice: choices
 fewshot_split: train
 should_decontaminate: true
-doc_to_decontamination_query: "{{support}} {{question}}"
+doc_to_decontamination_query: "{{query}}"
 metric_list:
   - metric: acc
     aggregation: mean
@@ -17,7 +17,6 @@ metric_list:
 metadata:
   version: '1.0'
 num_fewshot: 0
-output_type: generate_until
 task: GRMultifin
 test_split: test
 training_split: train
