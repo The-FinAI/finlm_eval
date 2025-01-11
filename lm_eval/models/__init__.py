@@ -1,6 +1,7 @@
 from . import (
     anthropic_llms,
     api_models,
+    deepseek_completions,
     dummy,
     gguf,
     hf_vlms,

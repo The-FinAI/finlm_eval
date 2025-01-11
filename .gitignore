@@ -1,4 +1,5 @@
 env
+eval.sh
 *.pyc
 output/
 data/
