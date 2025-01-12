@@ -18,6 +18,8 @@ from typing import (
     Union,
 )
 
+import tiktoken
+
 
 try:
     import requests
@@ -256,6 +258,28 @@ class TemplateAPI(TemplateLM):
         self, chat_history: List[Dict[str, str]]
     ) -> Union[str, JsonChatStr]:
         """Applies a chat template to a list of chat history between user and model."""
+        tokenizer = tiktoken.get_encoding("cl100k_base")  # Change encoding if needed
+        tokenized_encodings = [
+            {key: tokenizer.encode(value) for key, value in x.items()}
+            for x in chat_history
+        ]
+
+        max_gen_toks = self._max_gen_toks
+        max_context_len = self.max_length - max_gen_toks
+
+        truncated_encodings = [
+            {key: value[:max_context_len] for key, value in toks.items()}
+            for toks in tokenized_encodings
+        ]
+
+        if any(len(x) + max_gen_toks > self.max_length for x in truncated_encodings):
+            eval_logger.warning(
+                f"Some contexts exceeded (max length: {self.max_length}) - max_gen_toks: ({max_gen_toks}). They were right-truncated."
+            )
+        for history, encodings in zip(chat_history, truncated_encodings):
+            for key, value in history.items():
+                history[key] = tokenizer.decode(encodings[key])
+
         if self.tokenizer_backend == "huggingface" and self.tokenized_requests:
             return self.tokenizer.apply_chat_template(
                 chat_history, tokenize=False, add_generation_prompt=True
@@ -604,20 +628,17 @@ class TemplateAPI(TemplateLM):
                     )
                     max_context_len = self.max_length - max_gen_toks
 
-                    encodings_list = [x[-max_context_len:] for x in encodings_list]
+                    encodings_list = [x[:max_context_len] for x in encodings_list]
 
                     if any(
                         len(x) + max_gen_toks > self.max_length for x in encodings_list
                     ):
                         eval_logger.warning(
-                            f"Some contexts exceeded (max length: ({self.max_length}) - max_gen_toks: ({max_gen_toks}). They were left truncated."
+                            f"Some contexts exceeded (max length: ({self.max_length}) - max_gen_toks: ({max_gen_toks}). They were right truncated."
                         )
                 else:
-                    eval_logger.info(
-                        "Tokenized requests are disabled. Context + generation length is not checked."
-                    )
+                    pass
                 req = encodings_list if self.tokenized_requests else contexts
-                print(req)
                 outputs = retry(
                     stop=stop_after_attempt(self.max_retries),
                     wait=wait_exponential(multiplier=0.5, min=1, max=10),
@@ -654,13 +675,13 @@ class TemplateAPI(TemplateLM):
                     )
                     max_context_len = self.max_length - max_gen_toks
 
-                    encodings_list = [x[-max_context_len:] for x in encodings_list]
+                    encodings_list = [x[:max_context_len] for x in encodings_list]
 
                     if any(
                         len(x) + max_gen_toks > self.max_length for x in encodings_list
                     ):
                         eval_logger.warning(
-                            f"Some contexts exceeded (max length: ({self.max_length}) - max_gen_toks ({max_gen_toks}). They were left truncated."
+                            f"Some contexts exceeded (max length: ({self.max_length}) - max_gen_toks ({max_gen_toks}). They were right truncated."
                         )
                 else:
                     eval_logger.info(
